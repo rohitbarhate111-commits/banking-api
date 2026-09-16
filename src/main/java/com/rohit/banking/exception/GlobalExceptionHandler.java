@@ -11,7 +11,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 🔴 Resource not found
+    // 404 - requested resource does not exist
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, String> handleNotFound(ResourceNotFoundException ex) {
@@ -20,38 +20,43 @@ public class GlobalExceptionHandler {
         return error;
     }
 
-    // 🟡 Validation error (Controller level)
+    // 422 - business rule violation (e.g. insufficient balance)
+    @ExceptionHandler(InsufficientFundsException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public Map<String, String> handleInsufficientFunds(InsufficientFundsException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return error;
+    }
+
+    // 400 - bean validation failed at controller level (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleValidation(MethodArgumentNotValidException ex) {
-        Map<String, String> error = new HashMap<>();
-
+        Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(err ->
-                error.put(err.getField(), err.getDefaultMessage())
+                errors.put(err.getField(), err.getDefaultMessage())
         );
-
-        return error;
+        return errors;
     }
 
-    // 🟠 Validation error (Hibernate / DB level)
+    // 400 - constraint violation at persistence level (Hibernate)
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleConstraint(ConstraintViolationException ex) {
-        Map<String, String> error = new HashMap<>();
-
+        Map<String, String> errors = new HashMap<>();
         ex.getConstraintViolations().forEach(err ->
-                error.put(err.getPropertyPath().toString(), err.getMessage())
+                errors.put(err.getPropertyPath().toString(), err.getMessage())
         );
-
-        return error;
+        return errors;
     }
 
-    // ⚫ Generic fallback (ALWAYS LAST)
+    // 500 - unexpected error; always last
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, String> handleGeneric(Exception ex) {
         Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
+        error.put("error", "An unexpected error occurred");
         return error;
     }
 }

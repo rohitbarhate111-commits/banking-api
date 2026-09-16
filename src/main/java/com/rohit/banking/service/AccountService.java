@@ -1,9 +1,11 @@
 package com.rohit.banking.service;
 
+import com.rohit.banking.exception.InsufficientFundsException;
 import com.rohit.banking.exception.ResourceNotFoundException;
 import com.rohit.banking.model.Account;
 import com.rohit.banking.repository.AccountRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -24,22 +26,24 @@ public class AccountService {
         return repository.findAll();
     }
 
+    @Transactional
     public void transfer(Long fromId, Long toId, double amount) {
+        Account sender = repository.findById(fromId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sender account not found: " + fromId));
 
-        Account from = repository.findById(fromId)
-                .orElseThrow(() -> new ResourceNotFoundException("Sender not found"));
+        Account receiver = repository.findById(toId)
+                .orElseThrow(() -> new ResourceNotFoundException("Receiver account not found: " + toId));
 
-        Account to = repository.findById(toId)
-                .orElseThrow(() -> new ResourceNotFoundException("Receiver not found"));
-
-        if (from.getBalance() < amount) {
-            throw new RuntimeException("Insufficient balance");
+        if (sender.getBalance() < amount) {
+            throw new InsufficientFundsException(
+                    "Insufficient balance: available " + sender.getBalance() + ", requested " + amount
+            );
         }
 
-        from.setBalance(from.getBalance() - amount);
-        to.setBalance(to.getBalance() + amount);
+        sender.setBalance(sender.getBalance() - amount);
+        receiver.setBalance(receiver.getBalance() + amount);
 
-        repository.save(from);
-        repository.save(to);
+        repository.save(sender);
+        repository.save(receiver);
     }
 }
