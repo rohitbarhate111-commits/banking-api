@@ -28,6 +28,14 @@ public class AccountService {
 
     @Transactional
     public void transfer(Long fromId, Long toId, double amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Transfer amount must be greater than zero");
+        }
+
+        if (fromId != null && fromId.equals(toId)) {
+            throw new IllegalArgumentException("Sender and receiver accounts cannot be the same");
+        }
+
         Account sender = repository.findById(fromId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sender account not found: " + fromId));
 

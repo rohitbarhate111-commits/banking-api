@@ -76,6 +76,30 @@ class AccountServiceTest {
     }
 
     @Test
+    @DisplayName("transfer: throws IllegalArgumentException when amount is zero or negative")
+    void transfer_nonPositiveAmount_throwsException() {
+        assertThatThrownBy(() -> accountService.transfer(1L, 2L, 0.0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Transfer amount must be greater than zero");
+
+        assertThatThrownBy(() -> accountService.transfer(1L, 2L, -50.0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Transfer amount must be greater than zero");
+
+        verify(repository, never()).save(any(Account.class));
+    }
+
+    @Test
+    @DisplayName("transfer: throws IllegalArgumentException when sender and receiver are the same account")
+    void transfer_sameAccount_throwsException() {
+        assertThatThrownBy(() -> accountService.transfer(1L, 1L, 50.0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Sender and receiver accounts cannot be the same");
+
+        verify(repository, never()).save(any(Account.class));
+    }
+
+    @Test
     @DisplayName("transfer: throws InsufficientFundsException when sender has inadequate funds")
     void transfer_insufficientFunds_throwsException() {
         when(repository.findById(1L)).thenReturn(Optional.of(sender));

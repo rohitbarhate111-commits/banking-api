@@ -2,6 +2,8 @@ package com.rohit.banking.controller;
 
 import com.rohit.banking.model.Account;
 import com.rohit.banking.service.AccountService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,7 +19,8 @@ public class AccountController {
     }
 
     @PostMapping
-    public Account createAccount(@RequestBody Account account) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public Account createAccount(@Valid @RequestBody Account account) {
         return service.createAccount(account);
     }
 

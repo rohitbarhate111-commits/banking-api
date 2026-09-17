@@ -29,6 +29,15 @@ public class GlobalExceptionHandler {
         return error;
     }
 
+    // 400 - illegal arguments (e.g. negative transfer amount or same sender/receiver)
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleIllegalArgument(IllegalArgumentException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return error;
+    }
+
     // 400 - bean validation failed at controller level (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)

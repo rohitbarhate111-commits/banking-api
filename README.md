@@ -17,6 +17,7 @@ A REST API for banking operations built with Java 17 and Spring Boot. Covers acc
 | Database | H2 (in-memory, development) |
 | Code Generation | Lombok |
 | Build Tool | Apache Maven 3.9 |
+| Testing | JUnit 5, Mockito, Spring Test (MockMvc) |
 
 ---
 
@@ -88,6 +89,8 @@ POST /api/accounts/transfer?fromId=1&toId=2&amount=250.0
 
 Responses:
 - `200 OK` — `"Transfer successful"`
+- `400 Bad Request` — `{ "error": "Transfer amount must be greater than zero" }`
+- `400 Bad Request` — `{ "error": "Sender and receiver accounts cannot be the same" }`
 - `404 Not Found` — `{ "error": "Sender account not found: 1" }`
 - `404 Not Found` — `{ "error": "Receiver account not found: 2" }`
 - `422 Unprocessable Entity` — `{ "error": "Insufficient balance: available 100.0, requested 250.0" }`
@@ -108,7 +111,7 @@ Server starts at `http://localhost:8080`.
 H2 console is available at `http://localhost:8080/h2-console` (JDBC URL: `jdbc:h2:mem:bankingdb`, username: `sa`, no password).
 
 ```bash
-mvn test           # run test suite
+mvn test           # run test suite (16 unit and MockMvc integration tests)
 mvn clean package  # build JAR in target/
 ```
 
@@ -116,10 +119,15 @@ mvn clean package  # build JAR in target/
 
 ## Architecture & Implementation Notes
 
-- `@Transactional` on the transfer operation ensures both account updates are atomic — if the receiver credit or persistence fails, the sender debit rolls back automatically.
-- Custom domain exceptions (`InsufficientFundsException` -> 422, `ResourceNotFoundException` -> 404) keep HTTP concerns separated from business rules.
-- Bean validation (`@NotBlank`, `@Min`) guards against invalid inputs at controller ingress before reaching domain logic.
-- Uses H2 in-memory DB by default for instant local setup. Can be switched to PostgreSQL or MySQL via `src/main/resources/application.properties`.
+- **Transactional Consistency**: `@Transactional` on the transfer operation ensures atomic operations — if debit or credit encounters any failure, the entire transaction rolls back automatically.
+- **Layered Validation**:
+  - Request ingress validation via `@Valid` and Bean Validation (`@NotBlank`, `@Min`) ensures malformed request payloads are rejected before reaching business logic.
+  - Domain validation ensures non-positive transfers and self-transfers are rejected with clear error feedback.
+- **Structured Error Handling**: `GlobalExceptionHandler` maps domain exceptions to appropriate HTTP status codes:
+  - `IllegalArgumentException` / Validation errors -> `400 Bad Request`
+  - `ResourceNotFoundException` -> `404 Not Found`
+  - `InsufficientFundsException` -> `422 Unprocessable Entity`
+  - Unhandled errors -> `500 Internal Server Error`
 
 ---
 
